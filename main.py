@@ -93,7 +93,7 @@ def upload_to_google_drive(file_path):
 
 label = tkinter.Label(root)
 label.pack()
-
+#test
 # Запуск функции
 current_time()
 
