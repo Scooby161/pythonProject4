@@ -1,5 +1,5 @@
 import tkinter
-
+import sys
 import pyautogui
 import time
 import os
@@ -11,7 +11,8 @@ import tkinter.messagebox as mb
 from googleapiclient.http import MediaFileUpload
 
 # Путь к файлу учетных данных сервисного аккаунта
-SERVICE_ACCOUNT_CRED = '/Users/sergejskubin/PycharmProjects/pythonProject4/cruds.json'
+base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+json_path = os.path.join(base_path, 'cruds.json')
 
 # ID папки на Google Drive, в которую будут добавляться скриншоты
 FOLDER_ID = '1UunF1EMwfKvCvGaLXPEuLUDzMSMZPXIT'
@@ -77,7 +78,7 @@ def notification():
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
     # Создание объекта авторизации
-    creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_CRED, scopes=['https://www.googleapis.com/auth/drive'])
+    creds = service_account.Credentials.from_service_account_file(json_path, scopes=['https://www.googleapis.com/auth/drive'])
 
     # Создание объекта Google Drive API
     drive_service = build('drive', 'v3', credentials=creds)
