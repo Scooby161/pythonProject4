@@ -17,36 +17,80 @@ json_path = os.path.join(base_path, 'cruds.json')
 # ID папки на Google Drive, в которую будут добавляться скриншоты
 FOLDER_ID = '1UunF1EMwfKvCvGaLXPEuLUDzMSMZPXIT'
 
-dict_surname = {
-    'Скубин' : '1KPhIQ7_9aArAgOwJuTUc8xJ4A5LYcSRI',
-    'Блудов' : '1Pe6iwPx1523Pe5FCNCjAeZzR-IDmr3bZ'
+class User:
+    def __init__(self, name, folder_id):
+        self.name = name
+        self.folder_id = folder_id
+        self.password = 0
+        self.email_login = 0
+        self.email_password = 0
+
+
+
+skubin = User("Скубин","1KPhIQ7_9aArAgOwJuTUc8xJ4A5LYcSRI")
+bludov = User("Блудов","1Pe6iwPx1523Pe5FCNCjAeZzR-IDmr3bZ")
+averkiev = User("Аверкиев","1m5ocXtkPLfHAEnqM8Y9OgBCuSjJikOud")
+malahov = User("Малахов","1oj-7_LyQVXJZjNJ1axRlDYIWp2slE48O")
+maliha = User("Малыха","17kl1OLHXPxv7rXacso9EI0FNVweEhGTY")
+luka = User("Лукьянченко","1ECCP7dZ9v-woSHjODVr1Y3LAdSa07E9f")
+andreev = User("Андреев","1VlqvGSBYLnV-MBX-HeUq3H_LD5bYtHSd")
+virot = User("Вироцкий","1o2FQdWCCj9GRuN3PdibkqdV3Sd4x4h8A")
+test =  User("test", "1UunF1EMwfKvCvGaLXPEuLUDzMSMZPXIT")
+dict = {
+    'Скубин' : skubin,
+    'Блудов' : bludov,
+    'Аверкиев' : averkiev,
+    'Малахов' : malahov,
+    'Малыха' : maliha,
+    'Лукьянченко' : luka,
+    'Андреев' : andreev,
+    'Вироцкий' : virot,
+    'Выбери фамилию' : test
 }
+
+position_dict ={
+    'Перекрестки' : 'periki',
+    'Ленты\Метро' : 'lenti'
+}
+
+# Создание окна tkinter
+
+root = Tk()
+root.geometry("400x400")
+root.title("Screenshot App")
+
 def disable_combobox():
     global FOLDER_ID
-    combo.configure(state="disabled")
+    user_combox.configure(state="disabled")
+    position_combox.configure(state="disable")
     check.configure(state="disabled")
-    value = combo.get()
-    FOLDER_ID = dict_surname[value]
+    value = user_combox.get()
+    FOLDER_ID = dict[value].folder_id
     take_screenshot()
     notification()
 
 
-# Создание окна tkinter
-surname = ("Блудов","Скубин")
-root = Tk()
-root.geometry("400x400")
-root.title("Screenshot App")
-combo = ttk.Combobox(root, values=surname)
+user_combox = ttk.Combobox(root, values=list(dict.keys()))
+position_combox = ttk.Combobox(root, values= list(position_dict.keys()))
 check = tkinter.Button(root,text = "Выбрать сотрудника", command=disable_combobox)
+position_combox.current(0)
+user_combox.current(8)
+label = tkinter.Label(root)
 
-combo.pack()
-
-
+label.pack()
+user_combox.pack()
+position_combox.pack()
 check.pack()
+
+
+
+
+
+
 # Функция для выполнения скриншота
 def take_screenshot():
     # Получение текущего времени в формате "чч_мм_сс"
-    current_time = time.strftime("%d:%m_%H_%M", time.localtime())
+    current_time = time.strftime("%d_%m_%H:%M", time.localtime())
 
     # Создание скриншота
     screenshot = pyautogui.screenshot()
@@ -73,8 +117,15 @@ def current_time():
 
 def notification():
     msg = "Проверь диксель"
-    mb.showinfo("Информация", msg)
-    root.after(65000, notification)
+    msg2 = " Проверь ВкусВиллы"
+
+    if position_combox.get() == "Перекрестки":
+        mb.showinfo("Информация", msg2)
+    else:
+        mb.showinfo("Информация", msg)
+
+    root.after(3600000, notification)
+
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
     # Создание объекта авторизации
@@ -92,12 +143,11 @@ def upload_to_google_drive(file_path):
     media = MediaFileUpload(file_path)
     drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
-label = tkinter.Label(root)
-label.pack()
-#test
+
+
+
+
 # Запуск функции
 current_time()
-
-
 # Запуск основного цикла tkinter
 root.mainloop()
