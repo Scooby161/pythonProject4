@@ -11,6 +11,7 @@ from tkinter import ttk
 import tkinter.messagebox as mb
 from googleapiclient.http import MediaFileUpload
 import smtplib
+from plyer import notification
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -161,7 +162,7 @@ def start_timer(i,val):
     time.sleep(val.timer)
     # Выводим сообщение каждую секунду, если флаг вывода равен True
     while output_flags[i]:
-        notification(val)
+        notification1(val)
         time.sleep(5)
 
 # Инициализация графического интерфейса
@@ -257,10 +258,10 @@ def current_time():
     label.after(60000, current_time)
 
 
-def notification(quest):
+def notification1(quest):
     name = quest.name
     msg = quest.message
-    mb.showinfo(name, msg)
+    notification.notify(message = msg,app_name = 'BBWFY', title = name,timeout = 2)
 
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
