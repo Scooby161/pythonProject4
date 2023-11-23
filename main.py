@@ -202,7 +202,7 @@ def send_message_start():
     user = dict_of_login_date[value]
     current_timer = time.strftime("%d.%m.%y")
     subject = f"Инженер мониторинга {current_timer}"
-    recipient =  'cthutq1597539@mail.ru'
+    recipients =  ['komissarenko.vo@es-company.ru','monitoring@es-company.ru']
     current_time = time.strftime("%H:%M")
 
     day_time_min = time.strptime('07:00', '%H:%M')
@@ -222,7 +222,7 @@ def send_message_start():
     # Создаем MIMEMultipart объект и устанавливаем заголовки
     msg = MIMEMultipart()
     msg['From'] = sender_email
-    msg['To'] = recipient
+    msg['To'] = ', '.join(recipients)
 
     msg['Subject'] = subject
 
@@ -250,8 +250,8 @@ def send_message_to(recipients,subjects):
     body = entry_order.get("1.0", "end-1c")
     print(body)
     current_timer = time.strftime("%d.%m.%y")
-    subject = f"Заявка на объект  {subjects}"
-    current_time = time.strftime("%H:%M")
+    subject = f"[МОНИТОРИНГ] Заявка на объект - {subjects}"
+
 
 
 
@@ -379,7 +379,7 @@ def button_click(i, val):
 
 def send_message():
     object = object_combox.get()
-    recipients = ["seregan852@gmail.com", dict_of_contacts[object]]
+    recipients = ["seregan852@gmail.com",'alarm@es-company.ru','monitoring@es-company.ru', dict_of_contacts[object]]
     subject = f"{object}"
     send_message_to(recipients, subject)  # вызов функции для отправки сообщения
 
