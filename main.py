@@ -50,7 +50,35 @@ periki = []
 lenti = []
 sheet = service.spreadsheets()
 
-periki_xl = sheet.values().get(spreadsheetId=spreadsheet_id, range='A:E').execute()
+root1 = Tk()
+root1.geometry("400x700")
+root1.title("Screenshot App")
+
+# Создание области прокрутки
+canvas = Canvas(root1)
+canvas.pack(side=LEFT, fill=BOTH, expand=True)
+
+scrollbar = Scrollbar(root1, command=canvas.yview)
+scrollbar.pack(side=RIGHT, fill=Y)
+
+canvas.configure(yscrollcommand=scrollbar.set)
+
+# Создание фрейма и его размещение на области прокрутки
+root = Frame(canvas)
+window = canvas.create_window((0, 0), window=root, anchor='nw')
+
+# Обработчик для изменения размеров фрейма
+root.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+# Функция для прокрутки содержимого с помощью колеса мыши
+def on_mousewheel(event):
+    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+canvas.bind_all("<MouseWheel>", on_mousewheel)
+
+
+
+periki_xl = sheet.values().get(spreadsheetId=spreadsheet_id, range='QuestDate!A:E').execute()
 values_periki = periki_xl.get('values', [])
 for i in values_periki:
         if i[0] == 'P':
@@ -148,10 +176,11 @@ def add_qd_to_sheet(data):
 
 # Создание окна tkinter
 
-root = Tk()
-root.geometry("400x700")
-root.title("Screenshot App")
+
+
+
 list_labels = []
+
 def start_smena():
     global FOLDER_ID
     global list_labels
@@ -457,8 +486,6 @@ def upload_to_google_drive(file_path):
 
 
 
-# Запуск функции
-current_time()
-
-# Запуск основного цикла tkinter
-root.mainloop()
+canvas.update_idletasks()
+canvas.configure(scrollregion=canvas.bbox("all"))
+root1.mainloop()
