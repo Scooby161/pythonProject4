@@ -7,25 +7,26 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from tkinter import *
-from tkinter import ttk, Text
+from tkinter import Text
 import tkinter.messagebox as mb
 from googleapiclient.http import MediaFileUpload
 import smtplib
 from plyer import notification
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from ttkbootstrap.scrolled import ScrolledFrame
 
 # Путь к файлу учетных данных сервисного аккаунта
+
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 json_path = os.path.join(base_path, 'cruds.json')
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SERVICE_ACCOUNT_FILE = 'cruds.json'
 creds = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 service = build('sheets', 'v4', credentials=creds)
-
-# ID папки на Google Drive, в которую будут добавляться скриншоты
 FOLDER_ID = '1UunF1EMwfKvCvGaLXPEuLUDzMSMZPXIT'
 spreadsheet_id = '1-C3TivYBTi2U2-lQr8CVGfw7Z4PbmcT68PHMSG3COwI'
 
@@ -46,37 +47,22 @@ class Quest:
         self.message = message
 
 
-periki = []
 lenti = []
+periki = []
+object = []
 sheet = service.spreadsheets()
 
-root1 = Tk()
-root1.geometry("400x700")
+root1 = ttk.Window()
+root1.geometry("400x400")
 root1.title("Screenshot App")
 
-# Создание области прокрутки
-canvas = Canvas(root1)
-canvas.pack(side=LEFT, fill=BOTH, expand=True)
 
-scrollbar = Scrollbar(root1, command=canvas.yview)
-scrollbar.pack(side=RIGHT, fill=Y)
-
-canvas.configure(yscrollcommand=scrollbar.set)
 
 # Создание фрейма и его размещение на области прокрутки
-root = Frame(canvas)
-window = canvas.create_window((0, 0), window=root, anchor='nw')
+root  = ScrolledFrame(root1,autohide =False,bootstyle ="light")
+root.pack(fill= BOTH, expand=YES)
 
-# Обработчик для изменения размеров фрейма
-root.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-
-# Функция для прокрутки содержимого с помощью колеса мыши
-def on_mousewheel(event):
-    canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-
-canvas.bind_all("<MouseWheel>", on_mousewheel)
-
-
+send_object_button = ttk.Button(root, text="Отправить письмо")
 
 periki_xl = sheet.values().get(spreadsheetId=spreadsheet_id, range='QuestDate!A:E').execute()
 values_periki = periki_xl.get('values', [])
@@ -106,15 +92,15 @@ def get_object_list():
     global entry_order
     global entry_comment
     global label_en
-
+    fl_comments = ttk.LabelFrame(root, text="Журнал + Письма", bootstyle="dark")
     if position == 'Перекрестки':
         result3 = sheet.values().get(spreadsheetId=spreadsheet_id, range='PerikiList!A:B').execute()
         values3 = result3.get('values', [])
         dict_of_contacts = {}
         for i in values3:
             dict_of_contacts[i[0]] = i[1]
-        send_object_button = tkinter.Button(root, text="Отправить письмо", command=send_message)
-        send_jornal_button = tkinter.Button(root, text="Добавить в журнал", command=add_data_to_jornal)
+        send_object_button = ttk.Button(fl_comments, text="Отправить письмо", command=send_message)
+        send_jornal_button = ttk.Button(fl_comments, text="Добавить в журнал", command=add_data_to_jornal)
         send_object_button.configure(state='disable')
     else:
         result3 = sheet.values().get(spreadsheetId=spreadsheet_id, range='Contacts!A:B').execute()
@@ -122,29 +108,49 @@ def get_object_list():
         dict_of_contacts = {}
         for i in values3:
             dict_of_contacts[i[0]] = i[1]
-        send_object_button = tkinter.Button(root, text="Отправить письмо", command=send_message)
-        send_jornal_button = tkinter.Button(root, text="Добавить в журнал", command=add_data_to_jornal)
+        send_object_button = ttk.Button(fl_comments, text="Отправить письмо", command=send_message)
+        send_jornal_button = ttk.Button(fl_comments, text="Добавить в журнал", command=add_data_to_jornal)
 
 
-    label_object = tkinter.Label(root, text='Выбери объект')
-    object_combox = ttk.Combobox(root, values= list(dict_of_contacts.keys()))
-    object_combox.current(0)
-    label_alarm = tkinter.Label(root, text='Напиши суть аварии (пример: 13 горка не в сети)')
-    entry_order = tkinter.Text(root, height=10, width=100)
-    label_comment= tkinter.Label(root, text='Напиши комментарий если он есть (пример: отключена магазином на неопределенный срок) можно оставить пустым')
-    entry_comment = tkinter.Text(root, height=10, width=100)
-    label_en = tkinter.Label(root, text='___________________________________')
+    label_object = ttk.Label(fl_comments, text='Выбери объект')
+    object_combox = ttk.Combobox(fl_comments, values= list(dict_of_contacts.keys()))
+    object_combox.configure(height= 10,width=70)
+    object_combox.bind('<KeyRelease>',search_object)
+    object_combox.set("Начни вводить номер объекта")
+    label_alarm = ttk.Label(fl_comments, text='Напиши суть аварии (пример: 13 горка не в сети)')
+    entry_order = ttk.Text(fl_comments, height=10, width=70)
+    object_combox.bind('<KeyRelease>', search_object)
+    label_comment= ttk.Label(fl_comments, text='Напиши комментарий если он есть. Можно оставить пустым')
+    entry_comment = ttk.Text(fl_comments, height=10, width=70)
+    label_en = ttk.Label(fl_comments, text='___________________________________')
+    entry_comment.bind("<Control-v>", paste_text)
+    entry_order.bind('<Control-v>', paste_text)
 
+    label_object.grid(row=0, column=0,pady=5)
+    object_combox.grid(row=1, column=0,pady=5,padx=5)
+    label_alarm.grid(row=2, column=0,pady=5)
+    entry_order.grid(row=3, column=0,pady=5)
+    label_comment.grid(row=4, column=0,pady=5)
+    entry_comment.grid(row=5, column=0,pady=5)
+    send_jornal_button.grid(row=6, column=0,pady=5)
+    send_object_button.grid(row=7, column=0,pady=5)
+    label_en.grid(row=9, column=0,pady=5)
 
-    label_object.pack()
-    object_combox.pack()
-    label_alarm.pack()
-    entry_order.pack()
-    label_comment.pack()
-    entry_comment.pack()
-    send_jornal_button.pack()
-    send_object_button.pack()
-    label_en.pack()
+    fl_comments.pack(pady=10)
+def search_object(event):
+    value = event.widget.get()
+    if value == '':
+        object_combox['value'] = list(dict_of_contacts.keys())
+    else:
+        data = []
+        for item in list(dict_of_contacts.keys()):
+            if value.lower() in item.lower():
+                data.append(item)
+        object_combox['values'] = data
+
+def paste_text(event):
+    text = root.clipboard_get()
+    entry.insert(tk.INSERT, text)
 
 def add_qd_to_sheet(data):
     sheet = service.spreadsheets()
@@ -174,9 +180,6 @@ def add_qd_to_sheet(data):
 
 
 
-# Создание окна tkinter
-
-
 
 
 list_labels = []
@@ -193,6 +196,7 @@ def start_smena():
     value = user_combox.get()
     FOLDER_ID = dict_of_login_date[value].folder_id
     get_object_list()
+    root1.geometry("800x1600")
     take_screenshot()
 
 
@@ -202,7 +206,7 @@ def send_message_start():
     user = dict_of_login_date[value]
     current_timer = time.strftime("%d.%m.%y")
     subject = f"Инженер мониторинга {current_timer}"
-    recipients =  ['komissarenko.vo@es-company.ru','monitoring@es-company.ru']
+    recipients =  ['ok@es-company.ru','monitoring@es-company.ru']
     current_time = time.strftime("%H:%M")
 
     day_time_min = time.strptime('07:00', '%H:%M')
@@ -332,8 +336,10 @@ def start_timer(i,val):
                 z = z + 1
                 time.sleep(1)
             else:
-                notification2(val)
-                time.sleep(300)
+                while output_flags[i]:
+                    if z < 300:
+                        z = z + 1
+                        time.sleep(1)
     else:
         while output_flags[i]:
             current_time = time.localtime()
@@ -379,51 +385,56 @@ def button_click(i, val):
 
 def send_message():
     object = object_combox.get()
-    recipients = ["seregan852@gmail.com",'alarm@es-company.ru','monitoring@es-company.ru', dict_of_contacts[object]]
+    recipients = ['alarm@es-company.ru','monitoring@es-company.ru', dict_of_contacts[object]]
     subject = f"{object}"
     send_message_to(recipients, subject)  # вызов функции для отправки сообщения
+frame_login = ttk.LabelFrame(root, text="Выбери свои данные",bootstyle="dark")
+label_surname = ttk.Label(frame_login, text= "Выбрать фамилию")
+label_position = ttk.Label(frame_login,text= 'Выбрать позицию')
+user_combox = ttk.Combobox(frame_login, values=list(dict_of_login_date.keys()))
+position_combox = ttk.Combobox(frame_login, values= list(position_dict.keys()))
+check = ttk.Button(frame_login,text = "Готово", command=start_smena)
 
-label_surname = tkinter.Label(root, text= "Выбрать фамилию")
-label_position = tkinter.Label(root,text= 'Выбрать позицию')
-user_combox = ttk.Combobox(root, values=list(dict_of_login_date.keys()))
-position_combox = ttk.Combobox(root, values= list(position_dict.keys()))
-check = tkinter.Button(root,text = "Готово", command=start_smena)
+label_surname.grid(row=0, column=0,pady=5,padx=5)
+label_position.grid(row=2, column=0,pady=5,padx=5)
+user_combox.grid(row=1, column=0,pady=5,padx=5)
+position_combox.grid(row=3, column=0,pady=5,padx=5)
+check.grid(row=4, column=0,pady=5,padx=5)
+
 position_combox.current(0)
 user_combox.current(0)
-label = tkinter.Label(root)
-task_button = ttk.Button(root, text= "")
-label_mail = tkinter.Label(root,text= '___________________________________')
-send_button = tkinter.Button(root, text="Отправить письмо", command=send_message_start)
-label_qs = tkinter.Label(root,text= '___________________________________')
 
+label = ttk.Label(root)
+task_button = ttk.Button(root, text= "")
+label_frame = ttk.LabelFrame(root, text="Отправить письмо о начале смены в О.К.?",bootstyle="secondary")
+send_button = ttk.Button(label_frame, text="Отправить письмо", command=send_message_start)
+
+send_button.grid(row=0, column=0, sticky="w",pady=5,padx=70)
 
 
 
 
 
 label.pack()
-label_surname.pack()
-user_combox.pack()
-label_position.pack()
-position_combox.pack()
-check.pack()
-label_mail.pack()
-send_button.pack()
-label_qs.pack()
+frame_login.pack(pady=10)
+label_frame.pack(pady=10)
+
 
 
 def make_pos_button(possition):
     labels = []
+
     for i,val in enumerate(possition):
+        label_frame = ttk.LabelFrame(root, text=f"{val.name}",bootstyle="dark")
         if val.type == 'interval':
-            button = tkinter.Button(root, text=f"Чек {val.name}", command=lambda i=i, v=val: button_click(i, v))
+            button = ttk.Button(label_frame, text=f"Чек {val.name}", command=lambda i=i, v=val: button_click(i, v))
+            button.grid(row=0, column=0, sticky="w",pady=5,padx=5)
         else:
-            button = tkinter.Button(root, text=f"Выполнить {val.name}", command=lambda i=i, v=val: button_click(i, v))
-        label = tkinter.Label(root,text=f"Последнее время: ")
-        labeler = tkinter.Label(root, text='___________________________________')
-        button.pack()
-        label.pack()
-        labeler.pack()
+            button = ttk.Button(label_frame, text=f"Выполнить {val.name}", command=lambda i=i, v=val: button_click(i, v))
+            button.grid(row=0, column=0, sticky="w",pady=5,padx=5)
+        label = ttk.Label(label_frame,text=f"Последнее время: ")
+        label.grid(row=1, column=0,pady=3)
+        label_frame.pack(pady=5)
         labels.append(label)
     return labels
 
@@ -486,6 +497,4 @@ def upload_to_google_drive(file_path):
 
 
 
-canvas.update_idletasks()
-canvas.configure(scrollregion=canvas.bbox("all"))
 root1.mainloop()
