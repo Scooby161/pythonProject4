@@ -150,8 +150,10 @@ def search_object(event):
 
 def paste_text(event):
     text = root.clipboard_get()
-    entry.insert(tk.INSERT, text)
-
+    if isinstance(event.widget, ttk.Text):
+        event.widget.insert(tkinter.INSERT, text)
+    elif isinstance(event.widget, ttk.Entry):
+        event.widget.insert(0, text)
 def add_qd_to_sheet(data):
     sheet = service.spreadsheets()
     time.sleep(1)
@@ -347,7 +349,7 @@ def start_timer(i,val):
             if (current_time.tm_hour == target_time.tm_hour and
                     current_time.tm_min == target_time.tm_min and
                     current_time.tm_sec >= target_time.tm_sec):
-                notification2(val)
+                notification1(val)
                 break
             time.sleep(1)
 # Инициализация графического интерфейса
