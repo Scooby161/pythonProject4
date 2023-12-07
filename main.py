@@ -17,6 +17,7 @@ from email.mime.multipart import MIMEMultipart
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
+from win10toast import ToastNotifier
 
 # Путь к файлу учетных данных сервисного аккаунта
 
@@ -338,10 +339,14 @@ def start_timer(i,val):
                 z = z + 1
                 time.sleep(1)
             else:
+                z = 0
                 while output_flags[i]:
                     if z < 300:
                         z = z + 1
                         time.sleep(1)
+                    else:
+                        z = 0
+                        notification3(val)
     else:
         while output_flags[i]:
             current_time = time.localtime()
@@ -349,7 +354,7 @@ def start_timer(i,val):
             if (current_time.tm_hour == target_time.tm_hour and
                     current_time.tm_min == target_time.tm_min and
                     current_time.tm_sec >= target_time.tm_sec):
-                notification1(val)
+                notification3(val)
                 break
             time.sleep(1)
 # Инициализация графического интерфейса
@@ -376,9 +381,10 @@ def button_click(i, val):
             if val.type == 'interval':
                 output_flags[i] = False
                 threads[i].join()
+                output_flags[i] = True
                 threads[i] = threading.Thread(target=start_timer, args=(i,val,))
                 threads[i].start()
-                output_flags[i] = True
+
             else:
                 output_flags[i] = False
 
@@ -472,11 +478,17 @@ def current_time():
 def notification1(quest):
     name = quest.name
     msg = quest.message
-    notification.notify(message = msg,app_name = 'BBWFY', title = name,timeout = 2)
+    notification.notify(message = msg,app_name = 'BBWFY', title = name,timeout = 5)
 def notification2(quest):
     name = quest.name
     msg = quest.message
     print(f"{name} и {msg}")
+
+def notification3(quest):
+    name = quest.name
+    msg = quest.message
+    toaster = ToastNotifier()
+    toaster.show_toast(f"{name}", f"{msg}", duration=10)
 
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
