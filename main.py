@@ -58,7 +58,7 @@ sheet = service.spreadsheets()
 
 root1 = ttk.Window()
 root1.geometry("400x400")
-root1.title("Screenshot App")
+root1.title("ToDoMonitoring")
 
 
 
@@ -117,28 +117,34 @@ def get_object_list():
 
 
     label_object = ttk.Label(fl_comments, text='Выбери объект')
+
     object_combox = ttk.Combobox(fl_comments, values= list(dict_of_contacts.keys()))
+
     object_combox.configure(height= 10,width=70)
     object_combox.bind('<KeyRelease>',search_object)
     object_combox.set("Начни вводить номер объекта")
     label_alarm = ttk.Label(fl_comments, text='Напиши суть аварии (пример: 13 горка не в сети)')
     entry_order = ttk.Text(fl_comments, height=10, width=70)
+    paste_object_button1 = ttk.Button(fl_comments, text="Вставить",command=lambda text_box=entry_order: paste_text(text_box))
     object_combox.bind('<KeyRelease>', search_object)
     label_comment= ttk.Label(fl_comments, text='Напиши комментарий если он есть. Можно оставить пустым')
     entry_comment = ttk.Text(fl_comments, height=10, width=70)
+    paste_object_button = ttk.Button(fl_comments, text="Вставить",command=lambda text_box=entry_comment: paste_text(text_box))
     label_en = ttk.Label(fl_comments, text='___________________________________')
     entry_comment.bind("<Control-v>", paste_text)
     entry_order.bind('<Control-v>', paste_text)
 
-    label_object.grid(row=0, column=0,pady=5)
-    object_combox.grid(row=1, column=0,pady=5,padx=5)
+    label_object.grid(row=0, column=0,columnspan=2,pady=5)
+    object_combox.grid(row=1, column=0,columnspan=2,pady=5,padx=5)
     label_alarm.grid(row=2, column=0,pady=5)
-    entry_order.grid(row=3, column=0,pady=5)
+    paste_object_button1.grid(row=2, column=1,pady=5)
+    entry_order.grid(row=3, column=0,columnspan=2,pady=5)
     label_comment.grid(row=4, column=0,pady=5)
-    entry_comment.grid(row=5, column=0,pady=5)
-    send_jornal_button.grid(row=6, column=0,pady=5)
-    send_object_button.grid(row=7, column=0,pady=5)
-    label_en.grid(row=9, column=0,pady=5)
+    paste_object_button.grid(row=4, column=1, pady=5)
+    entry_comment.grid(row=5, column=0,columnspan=2,pady=5)
+    send_jornal_button.grid(row=6, column=0,columnspan=2,pady=5)
+    send_object_button.grid(row=7, column=0,columnspan=2,pady=5)
+    label_en.grid(row=9, column=0,columnspan=2,pady=5)
 
     fl_comments.pack(pady=10)
 def search_object(event):
@@ -158,6 +164,10 @@ def paste_text(event):
         event.widget.insert(tkinter.INSERT, text)
     elif isinstance(event.widget, ttk.Entry):
         event.widget.insert(0, text)
+def paste_text(text_box):
+    text = root.clipboard_get()
+    text_box.insert(tkinter.END, f"{text}")
+
 def add_qd_to_sheet(data):
     sheet = service.spreadsheets()
     time.sleep(1)
@@ -320,12 +330,12 @@ def add_data_to_jornal():
             result = sheet.values().append(
                 spreadsheetId=id_of_jornal, range='Periki!A:D',
                 valueInputOption='USER_ENTERED', body=body).execute()
-            label_en.config(text=f'____Заметка на объект {object} добавлена___')
+            label_en.config(text=f'_Заметка на объект {object} добавлена_')
         else:
             result = sheet.values().append(
                 spreadsheetId=id_of_jornal, range='Len/Metro!A:D',
                 valueInputOption='USER_ENTERED', body=body).execute()
-            label_en.config(text=f'____Заметка на объект {object} добавлена___')
+            label_en.config(text=f'_Заметка на объект {object} добавлена_')
 
     except Exception as e:
         print('An error occurred:', str(e))
@@ -335,7 +345,7 @@ def add_data_to_jornal():
 
 
 
-def start_timer(i,val):
+def start_timer(button,i,val):
     if val.type == 'interval':
         z = 0
         while output_flags[i]:
@@ -350,15 +360,18 @@ def start_timer(i,val):
                         time.sleep(1)
                     else:
                         z = 0
+                        button.configure(style='danger.TButton')
                         notification2(val)
     else:
         while output_flags[i]:
+            button.configure(style='primary.TButton')
             current_time = time.localtime()
             target_time = time.strptime(val.timer, "%H:%M:%S")
             if (current_time.tm_hour == target_time.tm_hour and
                     current_time.tm_min == target_time.tm_min and
                     current_time.tm_sec >= target_time.tm_sec):
                 notification2(val)
+                button.configure(style='danger.TButton')
                 break
             time.sleep(1)
 # Инициализация графического интерфейса
@@ -369,7 +382,7 @@ output_flags = [False, False, False, False, False, False, False, False, False, F
 threads = [None, None, None, None, None, None, None, None, None, None, None, None, None, None]
 
 # Функция для обработки нажатия на кнопку
-def button_click(i, val):
+def button_click(button,i, val):
         global output_flags
         global threads
         current_time = time.strftime("%d_%m_%H:%M", time.localtime())
@@ -378,15 +391,16 @@ def button_click(i, val):
         if not output_flags[i]:
             # Создание и запуск потока с функцией start_timer
             output_flags[i] = True
-            threads[i] = threading.Thread(target=start_timer, args=(i,val,))
+            threads[i] = threading.Thread(target=start_timer, args=(button,i,val,))
             threads[i].start()
 
         else:
             if val.type == 'interval':
+                button.configure(style='primary.TButton')
                 output_flags[i] = False
                 threads[i].join()
                 output_flags[i] = True
-                threads[i] = threading.Thread(target=start_timer, args=(i,val,))
+                threads[i] = threading.Thread(target=start_timer, args=(button,i,val,))
                 threads[i].start()
 
             else:
@@ -439,11 +453,13 @@ def make_pos_button(possition):
     for i,val in enumerate(possition):
         label_frame = ttk.LabelFrame(root, text=f"{val.name}",bootstyle="dark")
         if val.type == 'interval':
-            button = ttk.Button(label_frame, text=f"Чек {val.name}", command=lambda i=i, v=val: button_click(i, v))
-            button.grid(row=0, column=0, sticky="w",pady=5,padx=5)
+            button = ttk.Button(label_frame, text=f"Check {val.name}")
+            button.config(command=lambda b=button, i=i, v=val: button_click(b, i, v))
+            button.grid(row=0, column=0, sticky="n",pady=5,padx=5)
         else:
-            button = ttk.Button(label_frame, text=f"Выполнить {val.name}", command=lambda i=i, v=val: button_click(i, v))
-            button.grid(row=0, column=0, sticky="w",pady=5,padx=5)
+            button = ttk.Button(label_frame, text=f"Check {val.name}")
+            button.config(command=lambda b=button, i=i, v=val: button_click(b, i, v))
+            button.grid(row=0, column=0, sticky="n",pady=5,padx=5)
         label = ttk.Label(label_frame,text=f"Последнее время: ")
         label.grid(row=1, column=0,pady=3)
         label_frame.pack(pady=5)
@@ -482,14 +498,14 @@ def current_time():
 def notification1(quest):
     name = quest.name
     msg = quest.message
-    notification.notify(message = msg,app_name = 'BBWFY', title = name,timeout = 5)
+    print(name,msg)
 
 def notification2(quest):
     name = quest.name
     msg = quest.message
     notify (
     BodyText=f"{msg}",
-    AppName=f"{name}",
+    AppName="ToDoMonitoring",
     AppPath=f"{name}",
     TitleText=f"{name}",
     ImagePath='icon.ico'
