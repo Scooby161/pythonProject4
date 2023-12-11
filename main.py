@@ -18,6 +18,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
 from win10toast import ToastNotifier
+from toastify import notify
 
 # Путь к файлу учетных данных сервисного аккаунта
 
@@ -47,6 +48,8 @@ class Quest:
         self.timer = timer
         self.message = message
 
+
+test_notifi = Quest("interval","test","3600","Test")
 
 lenti = []
 periki = []
@@ -200,6 +203,7 @@ def start_smena():
     FOLDER_ID = dict_of_login_date[value].folder_id
     get_object_list()
     root1.geometry("800x1600")
+    notification2(test_notifi)
     take_screenshot()
 
 
@@ -248,7 +252,7 @@ def send_message_start():
     server.quit()
 
     # Выводим сообщение об успешной отправке
-    label_mail.config (text = '_________Письмо_успешно_отправлено___________')
+    
     send_button.configure(state="disable")
 
 def send_message_to(recipients,subjects):
@@ -346,7 +350,7 @@ def start_timer(i,val):
                         time.sleep(1)
                     else:
                         z = 0
-                        notification3(val)
+                        notification2(val)
     else:
         while output_flags[i]:
             current_time = time.localtime()
@@ -354,7 +358,7 @@ def start_timer(i,val):
             if (current_time.tm_hour == target_time.tm_hour and
                     current_time.tm_min == target_time.tm_min and
                     current_time.tm_sec >= target_time.tm_sec):
-                notification3(val)
+                notification2(val)
                 break
             time.sleep(1)
 # Инициализация графического интерфейса
@@ -479,16 +483,25 @@ def notification1(quest):
     name = quest.name
     msg = quest.message
     notification.notify(message = msg,app_name = 'BBWFY', title = name,timeout = 5)
+
 def notification2(quest):
     name = quest.name
     msg = quest.message
+    notify (
+    BodyText=f"{msg}",
+    AppName=f"{name}",
+    AppPath=f"{name}",
+    TitleText=f"{name}",
+    ImagePath='icon.ico'
+    )
     print(f"{name} и {msg}")
 
 def notification3(quest):
+    time.sleep(5)
     name = quest.name
     msg = quest.message
     toaster = ToastNotifier()
-    toaster.show_toast(f"{name}", f"{msg}", duration=10)
+    toaster.show_toast(f"{name}", f"{msg}", duration=10,icon_path = "icon.ico" )
 
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
