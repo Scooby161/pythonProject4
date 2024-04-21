@@ -17,9 +17,11 @@ from email.mime.multipart import MIMEMultipart
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledFrame
-from win10toast import ToastNotifier
-from toastify import notify
-
+import yadisk
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import quopri
+from email.message import EmailMessage
 # Путь к файлу учетных данных сервисного аккаунта
 
 base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -85,8 +87,8 @@ for i in values_login:
     dict_of_login_date[i[0]] = User(i[0],i[1],i[2],i[3])
 
 position_dict ={
-    'Перекрестки' : periki,
-    'Ленты\Метро' : lenti
+    'Дневная' : periki,
+    'Ночная' : lenti
 }
 
 def get_object_list():
@@ -105,12 +107,12 @@ def get_object_list():
             dict_of_contacts[i[0]] = i[1]
         send_object_button = ttk.Button(fl_comments, text="Отправить письмо", command=send_message)
         send_jornal_button = ttk.Button(fl_comments, text="Добавить в журнал", command=add_data_to_jornal)
-        send_object_button.configure(state='disable')
     else:
         result3 = sheet.values().get(spreadsheetId=spreadsheet_id, range='Contacts!A:B').execute()
         values3 = result3.get('values', [])
         dict_of_contacts = {}
         for i in values3:
+            print(i[0])
             dict_of_contacts[i[0]] = i[1]
         send_object_button = ttk.Button(fl_comments, text="Отправить письмо", command=send_message)
         send_jornal_button = ttk.Button(fl_comments, text="Добавить в журнал", command=add_data_to_jornal)
@@ -213,7 +215,7 @@ def start_smena():
     FOLDER_ID = dict_of_login_date[value].folder_id
     get_object_list()
     root1.geometry("800x1600")
-    notification2(test_notifi)
+    delete_old_screens()
     take_screenshot()
 
 
@@ -305,6 +307,39 @@ def send_message_to(recipients,subjects):
     # Выводим сообщение об успешной отправке
 
     label_en.config (text = f'____Письмо на объект {subjects} отправлено___')
+def send_message_emails(recipients,subjects,body):
+    value = user_combox.get()
+    user = dict_of_login_date[value]
+    current_timer = time.strftime("%d.%m.%y")
+    subject = f"[ToDo] - {subjects}"
+
+    # Настройки SMTP сервера
+    smtp_server = 'smtp.mail.ru'
+    smtp_port = 465
+    sender_email = user.email_login
+    sender_password = user.email_password
+
+    msg = EmailMessage()
+    msg['From'] = sender_email
+    msg['To'] = ', '.join(recipients)
+    msg['Subject'] = subject
+    msg.set_content(body, cte='quoted-printable')  # устанавливаем контент сообщения с Content-Transfer-Encoding в base64
+    msg.set_charset('koi8-r')  # устанавливаем charset
+
+    # Не добавляем дополнительный заголовок Content-Transfer-Encoding
+    # msg['MIME-Version'] = '1.0'
+    #msg['Content-Type'] = 'text/plain; charset="koi8-r"'
+
+    try:
+        server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        print("Письмо успешно отправлено!")
+    except Exception as e:
+        print(f"Ошибка при отправке письма: {e}")
+
+    # Выводим сообщение об успешной отправке
 
 
 def add_data_to_jornal():
@@ -355,13 +390,14 @@ def start_timer(button,i,val):
             else:
                 z = 0
                 while output_flags[i]:
-                    if z < 300:
+                    if z < 900:
                         z = z + 1
                         time.sleep(1)
                     else:
                         z = 0
                         button.configure(style='danger.TButton')
-                        notification2(val)
+                        notificaion_mail_on(val)
+                        notification1(val)
     else:
         while output_flags[i]:
             button.configure(style='primary.TButton')
@@ -370,7 +406,8 @@ def start_timer(button,i,val):
             if (current_time.tm_hour == target_time.tm_hour and
                     current_time.tm_min == target_time.tm_min and
                     current_time.tm_sec >= target_time.tm_sec):
-                notification2(val)
+                notificaion_mail_on(val)
+                notification1(val)
                 button.configure(style='danger.TButton')
                 break
             time.sleep(1)
@@ -397,13 +434,14 @@ def button_click(button,i, val):
         else:
             if val.type == 'interval':
                 button.configure(style='primary.TButton')
+                notificaion_mail_off(val)
                 output_flags[i] = False
                 threads[i].join()
                 output_flags[i] = True
                 threads[i] = threading.Thread(target=start_timer, args=(button,i,val,))
                 threads[i].start()
-
             else:
+                notificaion_mail_off(val)
                 output_flags[i] = False
 
 
@@ -469,73 +507,113 @@ def make_pos_button(possition):
 
     # Функция для выполнения скриншота
 def take_screenshot():
-    # Получение текущего времени в формате "чч_мм_сс"
-    current_time = time.strftime("%d_%m_%H:%M", time.localtime())
+    try:
 
-    # Создание скриншота
-    screenshot = pyautogui.screenshot()
+        # Получение текущего времени в формате "чч_мм_сс"
+        current_time = time.strftime("%d_%m_%H:%M", time.localtime())
 
-    # Сохранение скриншота в файл
-    screenshot_path = f"{current_time}.png"
-    screenshot.save(screenshot_path)
+        # Создание скриншота
+        screenshot = pyautogui.screenshot()
 
-    # Добавление скриншота в папку на Google Drive
-    upload_to_google_drive(screenshot_path)
+        # Сохранение скриншота в файл
+        screenshot_path = f"screens/{current_time}.png"
+        screenshot.save(screenshot_path)
 
-    # Удаление локального файла скриншота
-    os.remove(screenshot_path)
+        # Добавление скриншота в папку на Google Drive
+        upload_to_google_drive(screenshot_path)
 
-    # Запуск функции через каждые 3 минуты
-    root.after(180000, take_screenshot)
-    
+    except Exception as e:
+        print(e)
+    root.after(90000, take_screenshot)
+
+
+def delete_old_screens():
+    folder = 'screens/'
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(e)
+
 
 def current_time():
     current_timer = time.strftime("%d/%m_%H:%M")
     label.config (text = current_timer)
     label.after(60000, current_time)
 
+def notificaion_mail_on(quest):
+    msg = f'''
+________________________________________
+От: service.monitor@land-group.ru
+Отправлено: 28 февраля 2024 г., 16:23:07 (UTC+03:00) Москва, Санкт-Петербург
+Кому: monitoring_rst3
+Тема: EMS Alarm: {quest.name}
+
+Unit:2 Version:G08.080
+Rack B ??? BA
+--- {quest.message}
+Generic: {quest.name}
+Addr:{quest.name}
+Alarm occurred: {time.strftime("%d/%m/%y")}
+Alarm if error
+Acknowledged: No
+------------------------------------------------
+    '''
+    send_message_emails(["monitoring_rst3@land-group.ru","sm@es-company.ru"],'Alarm todo',msg)
+
+def notificaion_mail_off(quest):
+    msg = f'''
+________________________________________
+От: service.monitor@land-group.ru
+Отправлено: 28 февраля 2024 г., 16:47:52 (UTC+03:00) Москва, Санкт-Петербург
+Кому: monitoring_rst3
+Тема: EMS Alarm: {quest.name}
+
+Unit:2 Version:G08.080
+Rack B ??? BA
+--- {quest.message}
+Generic: {quest.name}
+Addr:{quest.name}
+Alarm occurred: {time.strftime("%d/%m/%y")}
+Alarm cleared
+Alarm if error
+Acknowledged: Lvl 99 Acc01
+------------------------------------------------
+    '''
+    send_message_emails(["monitoring_rst3@land-group.ru","sm@es-company.ru"],'Alarm todo', msg)
 
 def notification1(quest):
-    name = quest.name
-    msg = quest.message
-    print(name,msg)
-
-def notification2(quest):
-    name = quest.name
-    msg = quest.message
-    notify (
-    BodyText=f"{msg}",
-    AppName="ToDoMonitoring",
-    AppPath=f"{name}",
-    TitleText=f"{name}",
-    ImagePath='icon.ico'
-    )
-    print(f"{name} и {msg}")
-
-def notification3(quest):
-    time.sleep(5)
-    name = quest.name
-    msg = quest.message
-    toaster = ToastNotifier()
-    toaster.show_toast(f"{name}", f"{msg}", duration=10,icon_path = "icon.ico" )
+        name = quest.name
+        msg = quest.message
+        print(name,msg)
+#
+# def notification2(quest):
+#     name = quest.name
+#     msg = quest.message
+#     notify (
+#     BodyText=f"{msg}",
+#     AppName="ToDoMonitoring",
+#     AppPath=f"{name}",
+#     TitleText=f"{name}",
+#     ImagePath='icon.ico'
+#     )
+#     print(f"{name} и {msg}")
+#
+# def notification3(quest):
+#     time.sleep(5)
+#     name = quest.name
+#     msg = quest.message
+#     toaster = ToastNotifier()
+#     toaster.show_toast(f"{name}", f"{msg}", duration=10,icon_path = "icon.ico" )
 
 # Функция для загрузки файла на Google Drive
 def upload_to_google_drive(file_path):
     # Создание объекта авторизации
-    creds = service_account.Credentials.from_service_account_file(json_path, scopes=['https://www.googleapis.com/auth/drive'])
+    client = yadisk.Client(token="y0_AgAAAAAW2O3pAAuScQAAAAEA-tE2AACsF6TwYldL4pSCxyBiX6yGkk4SZg")
 
-    # Создание объекта Google Drive API
-    drive_service = build('drive', 'v3', credentials=creds)
-
-    # Загрузка файла на Google Drive
-    file_metadata = {
-        'name': os.path.basename(file_path),
-        'parents': [FOLDER_ID]
-    }
-
-    media = MediaFileUpload(file_path)
-    drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-
+    client.upload(f"{file_path}", f"screens/{FOLDER_ID}/{file_path}")
 
 
 
